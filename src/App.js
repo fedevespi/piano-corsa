@@ -24,17 +24,19 @@ export default function App() {
         defaultTennis: state.defaultTennis,
         weekTennis: state.weekTennis,
         weekSchedules: state.weekSchedules,
+        planStartDate: state.planStartDate,
       });
     }
   }, [state]);
 
-  const handleGenerate = (selected) => {
+  const handleGenerate = (selected, startDate) => {
     const tArr = Array.from(selected).sort((a, b) => a - b);
     setState({
       screen: "plan",
       defaultTennis: selected,
       weekTennis: WEEK_PLANS.map(() => new Set(selected)),
       weekSchedules: WEEK_PLANS.map(w => buildInitialSchedule(tArr, w.sessions)),
+      planStartDate: startDate.toISOString(),
     });
   };
 
@@ -107,6 +109,7 @@ export default function App() {
       <PlanScreen
         weekTennis={state.weekTennis}
         weekSchedules={state.weekSchedules}
+        planStartDate={state.planStartDate}
         onToggleTennis={handleToggleTennis}
         onUpdateSchedule={handleUpdateSchedule}
         onToggleDone={handleToggleDone}

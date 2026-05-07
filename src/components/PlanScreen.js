@@ -1,7 +1,20 @@
+import { useState, useRef, useEffect } from "react";
 import { WEEK_PLANS } from "../data/weekPlans";
+import { getCurrentWeekIdx } from "../utils/schedule";
 import WeekCard from "./WeekCard";
 
-export default function PlanScreen({ weekTennis, weekSchedules, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onReset }) {
+export default function PlanScreen({ weekTennis, weekSchedules, planStartDate, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onReset }) {
+  const currentWeekIdx = getCurrentWeekIdx(planStartDate);
+  const [openIdx, setOpenIdx] = useState(currentWeekIdx);
+  const currentRef = useRef(null);
+
+  useEffect(() => {
+    const el = currentRef.current;
+    if (!el) return;
+    const timer = setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 200);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div style={{ minHeight: "100vh", background: "#f5f0e8", fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ background: "#2a1f1a", color: "#f5f0e8", padding: "22px 20px 18px", textAlign: "center" }}>
@@ -24,6 +37,10 @@ export default function PlanScreen({ weekTennis, weekSchedules, onToggleTennis, 
             week={week}
             tennisDays={weekTennis[wi]}
             schedule={weekSchedules[wi]}
+            isCurrent={wi === currentWeekIdx}
+            isOpen={wi === openIdx}
+            onToggle={() => setOpenIdx(prev => prev === wi ? -1 : wi)}
+            scrollRef={wi === currentWeekIdx ? currentRef : null}
             onToggleTennis={onToggleTennis}
             onUpdateSchedule={onUpdateSchedule}
             onToggleDone={onToggleDone}

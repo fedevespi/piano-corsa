@@ -1,8 +1,37 @@
 import { useState } from "react";
 import { DAY_NAMES } from "../data/weekPlans";
+import { getMondayOfCurrentWeek } from "../utils/schedule";
+
+const MONTHS_IT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+
+function getMondayOptions() {
+  const current = getMondayOfCurrentWeek();
+  return Array.from({ length: 9 }, (_, i) => {
+    const d = new Date(current);
+    d.setDate(d.getDate() + (i - 4) * 7);
+    return d;
+  });
+}
+
+function formatMondayOption(date, currentMonday) {
+  const d = date.getDate();
+  const m = MONTHS_IT[date.getMonth()];
+  const y = date.getFullYear();
+  const diff = Math.round((date - currentMonday) / (7 * 24 * 60 * 60 * 1000));
+  const base = `lun ${d} ${m} ${y}`;
+  if (diff === 0) return `${base} — questa settimana`;
+  if (diff === 1) return `${base} — settimana prossima`;
+  if (diff === -1) return `${base} — scorsa settimana`;
+  if (diff > 1) return `${base} — tra ${diff} settimane`;
+  return `${base} — ${Math.abs(diff)} settimane fa`;
+}
 
 export default function SetupScreen({ onGenerate }) {
   const [selected, setSelected] = useState(new Set());
+  const currentMonday = getMondayOfCurrentWeek();
+  const mondayOptions = getMondayOptions();
+  const [startDate, setStartDate] = useState(currentMonday);
+
   const toggle = (d) => setSelected(prev => {
     const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n;
   });
@@ -43,6 +72,28 @@ export default function SetupScreen({ onGenerate }) {
           })}
         </div>
 
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", fontWeight: 700, marginBottom: 4 }}>Da quando inizia la settimana 1?</div>
+          <div style={{ fontSize: ".83rem", color: "#6b5347", marginBottom: 10 }}>Usato per sapere in quale settimana sei — puoi scegliere anche il passato o il futuro</div>
+          <select
+            value={startDate.toISOString()}
+            onChange={e => setStartDate(new Date(e.target.value))}
+            style={{
+              width: "100%", padding: "13px 14px", border: "2px solid #e8ddd0",
+              borderRadius: 12, background: "#fff", fontFamily: "'DM Sans', sans-serif",
+              fontSize: ".88rem", color: "#2a1f1a", cursor: "pointer",
+              appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b5347' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
+              backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center",
+            }}
+          >
+            {mondayOptions.map(d => (
+              <option key={d.toISOString()} value={d.toISOString()}>
+                {formatMondayOption(d, currentMonday)}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", marginBottom: 18, borderLeft: "4px solid #c4714a" }}>
           <p style={{ fontSize: ".83rem", color: "#6b5347", lineHeight: 1.6 }}>
             Metodo <strong style={{ color: "#2a1f1a" }}>corsa/camminata</strong> progressivo · 8 settimane.
@@ -51,7 +102,7 @@ export default function SetupScreen({ onGenerate }) {
           </p>
         </div>
 
-        <button disabled={selected.size === 0} onClick={() => onGenerate(selected)} style={{
+        <button disabled={selected.size === 0} onClick={() => onGenerate(selected, startDate)} style={{
           width: "100%", padding: "17px", border: "none", borderRadius: 14,
           background: selected.size === 0 ? "#e8ddd0" : "#c4714a",
           color: selected.size === 0 ? "#6b5347" : "#fff",

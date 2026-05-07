@@ -1,5 +1,21 @@
 import { ALL_DAYS } from "../data/weekPlans";
 
+export function getMondayOfCurrentWeek() {
+  const today = new Date();
+  const day = today.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+export function getCurrentWeekIdx(planStartDate) {
+  if (!planStartDate) return 0;
+  const diffMs = Date.now() - new Date(planStartDate).getTime();
+  return Math.max(0, Math.min(7, Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))));
+}
+
 export function getAvailableRunDays(tDays) {
   const forbidden = new Set(tDays);
   tDays.forEach(d => forbidden.add((d + 1) % 7));
