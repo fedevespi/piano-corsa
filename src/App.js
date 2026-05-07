@@ -110,9 +110,9 @@ function SetupScreen({ onGenerate }) {
         <div style={{ position: "absolute", top: -50, right: -50, width: 180, height: 180, borderRadius: "50%", background: "#c4714a", opacity: .15 }} />
         <div style={{ position: "absolute", bottom: -40, left: -40, width: 140, height: 140, borderRadius: "50%", background: "#7ab648", opacity: .1 }} />
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "2rem", fontWeight: 900, lineHeight: 1.1, position: "relative" }}>
-          Il tuo piano<br /><span style={{ color: "#e8956d" }}>personalizzato</span>
+          Il tuo piano<br /><span style={{ color: "#e8956d" }}>corsa + tennis</span>
         </h1>
-        <p style={{ fontSize: ".88rem", opacity: .7, marginTop: 10, position: "relative" }}>Da 0 a 5km · 8 settimane</p>
+        <p style={{ fontSize: ".88rem", opacity: .7, marginTop: 10, position: "relative" }}>Da 0 a 5km · 8 settimane · personalizzato</p>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
           {[["🎾 Tennis", "#7ab648"], ["👟 Corsa", "#c4714a"], ["😴 Riposo", "#6b5347"]].map(([t, bg]) => (
             <span key={t} style={{ background: bg, color: "#fff", padding: "5px 13px", borderRadius: 20, fontSize: ".74rem", fontWeight: 600 }}>{t}</span>
