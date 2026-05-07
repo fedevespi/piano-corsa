@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
  
 const DAY_NAMES = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
@@ -63,9 +63,9 @@ function buildInitialSchedule(tDays, sessions) {
   runDays = [...new Set(runDays)].sort((a, b) => a - b);
   let sIdx = 0;
   return ALL_DAYS.map(d => {
-    if (tDays.includes(d)) return { day: d, type: "tennis", sessionIdx: null };
-    if (runDays.includes(d) && sIdx < sessions.length) return { day: d, type: "run", sessionIdx: sIdx++ };
-    return { day: d, type: "rest", sessionIdx: null };
+    if (tDays.includes(d)) return { day: d, type: "tennis", sessionIdx: null, done: false };
+    if (runDays.includes(d) && sIdx < sessions.length) return { day: d, type: "run", sessionIdx: sIdx++, done: false };
+    return { day: d, type: "rest", sessionIdx: null, done: false };
   });
 }
  
@@ -97,6 +97,154 @@ function loadFromStorage() {
   } catch (e) { return null; }
 }
  
+// ── Session timer helpers ─────────────────────────────────────
+
+function parseSession(detail) {
+  const m = detail.match(/(\d+)\s*min\s*corsa\s*\+\s*(\d+)\s*min\s*cammino\s*[×x]\s*(\d+)/i);
+  if (m) {
+    const runSec = parseInt(m[1]) * 60;
+    const walkSec = parseInt(m[2]) * 60;
+    const rounds = parseInt(m[3]);
+    return { type: "interval", runSec, walkSec, rounds, totalSec: (runSec + walkSec) * rounds };
+  }
+  const cm = detail.match(/^(\d+)\s*min/);
+  if (cm) return { type: "continuous", totalSec: parseInt(cm[1]) * 60 };
+  return { type: "open" };
+}
+
+function derivePhase(session, elapsedSec) {
+  if (session.type === "interval") {
+    const { runSec, walkSec, rounds } = session;
+    const cycleSec = runSec + walkSec;
+    if (elapsedSec >= session.totalSec) return { phase: "done", remaining: 0, round: rounds, rounds };
+    const round = Math.floor(elapsedSec / cycleSec);
+    const inCycle = elapsedSec % cycleSec;
+    return inCycle < runSec
+      ? { phase: "run", remaining: runSec - inCycle, round: round + 1, rounds }
+      : { phase: "walk", remaining: cycleSec - inCycle, round: round + 1, rounds };
+  }
+  if (session.type === "continuous") {
+    const remaining = Math.max(0, session.totalSec - elapsedSec);
+    return remaining === 0 ? { phase: "done", remaining: 0 } : { phase: "run", remaining };
+  }
+  return { phase: "run", remaining: null };
+}
+
+function scheduleBeep(actx, freq, time, dur = 0.35) {
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  osc.connect(gain);
+  gain.connect(actx.destination);
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.8, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+  osc.start(time);
+  osc.stop(time + dur + 0.05);
+}
+
+function scheduleAllBeeps(actx, session) {
+  const t0 = actx.currentTime + 0.15;
+  if (session.type === "interval") {
+    const { runSec, walkSec, rounds } = session;
+    const cycleSec = runSec + walkSec;
+    scheduleBeep(actx, 880, t0);
+    for (let r = 0; r < rounds; r++) {
+      const base = t0 + r * cycleSec;
+      scheduleBeep(actx, 550, base + runSec);
+      scheduleBeep(actx, 550, base + runSec + 0.4);
+      if (r < rounds - 1) scheduleBeep(actx, 880, base + cycleSec);
+    }
+  } else if (session.type === "continuous") {
+    scheduleBeep(actx, 880, t0);
+  } else {
+    scheduleBeep(actx, 880, t0);
+  }
+  if (session.totalSec) {
+    const td = t0 + session.totalSec;
+    scheduleBeep(actx, 660, td);
+    scheduleBeep(actx, 770, td + 0.35);
+    scheduleBeep(actx, 990, td + 0.7);
+  }
+}
+
+function startKeepAlive(actx) {
+  const buf = actx.createBuffer(1, 1, 22050);
+  const fire = () => {
+    try {
+      const src = actx.createBufferSource();
+      src.buffer = buf;
+      src.connect(actx.destination);
+      src.start(0);
+    } catch (_) {}
+  };
+  fire();
+  return setInterval(fire, 20000);
+}
+
+// ── Timer overlay ─────────────────────────────────────────────
+
+function TimerOverlay({ label, session, onStop, onMarkDone }) {
+  const [elapsed, setElapsed] = useState(0);
+  const startMs = useRef(Date.now());
+  const doneFired = useRef(false);
+  const onMarkDoneRef = useRef(onMarkDone);
+  onMarkDoneRef.current = onMarkDone;
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startMs.current) / 1000));
+    }, 500);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!doneFired.current && session.totalSec && elapsed >= session.totalSec) {
+      doneFired.current = true;
+      onMarkDoneRef.current();
+    }
+  }, [elapsed, session.totalSec]);
+
+  const fmt = s => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
+  const { phase, remaining, round, rounds } = derivePhase(session, elapsed);
+  const isDone = phase === "done";
+  const bg = isDone ? "#7ab648" : phase === "run" ? "#c4714a" : "#2a7a8a";
+  const pct = session.totalSec ? Math.min(100, (elapsed / session.totalSec) * 100) : null;
+
+  return (
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1000, background: bg, borderRadius: "20px 20px 0 0", padding: "20px 24px 36px", boxShadow: "0 -6px 32px rgba(0,0,0,.25)", fontFamily: "'DM Sans', sans-serif", transition: "background .4s" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <span style={{ color: "rgba(255,255,255,.75)", fontSize: ".78rem", fontWeight: 600 }}>
+          {label}{session.type === "interval" && round ? ` · round ${round}/${rounds}` : ""}
+        </span>
+        <button onClick={onStop} style={{ background: "rgba(255,255,255,.2)", border: "none", borderRadius: 20, color: "#fff", fontSize: ".78rem", fontWeight: 700, padding: "7px 16px", cursor: "pointer" }}>
+          ✕ Stop
+        </button>
+      </div>
+
+      <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
+        <div style={{ fontSize: "2.2rem", fontWeight: 900, color: "#fff", lineHeight: 1.1 }}>
+          {isDone ? "🎉 Completata!" : phase === "run" ? "CORRI 🏃" : "CAMMINA 🚶"}
+        </div>
+        {!isDone && (
+          <div style={{ fontSize: "3.5rem", fontWeight: 700, color: "rgba(255,255,255,.95)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+            {remaining != null ? fmt(remaining) : fmt(elapsed)}
+          </div>
+        )}
+      </div>
+
+      {pct !== null && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: ".68rem", color: "rgba(255,255,255,.6)", minWidth: 34 }}>{fmt(elapsed)}</span>
+          <div style={{ flex: 1, height: 5, background: "rgba(255,255,255,.2)", borderRadius: 3 }}>
+            <div style={{ height: "100%", borderRadius: 3, background: "rgba(255,255,255,.75)", width: `${pct}%`, transition: "width .5s linear" }} />
+          </div>
+          <span style={{ fontSize: ".68rem", color: "rgba(255,255,255,.6)", minWidth: 34, textAlign: "right" }}>{fmt(session.totalSec)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Setup ─────────────────────────────────────────────────────
 function SetupScreen({ onGenerate }) {
   const [selected, setSelected] = useState(new Set());
@@ -163,7 +311,7 @@ function SetupScreen({ onGenerate }) {
 }
  
 // ── Week card ─────────────────────────────────────────────────
-function WeekCard({ weekIdx, week, tennisDays, schedule, onToggleTennis, onUpdateSchedule }) {
+function WeekCard({ weekIdx, week, tennisDays, schedule, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer }) {
   const tArr = Array.from(tennisDays).sort((a, b) => a - b);
   const assignedIdxs = schedule.filter(s => s.type === "run").map(s => s.sessionIdx);
   const runCount = assignedIdxs.length;
@@ -233,30 +381,62 @@ function WeekCard({ weekIdx, week, tennisDays, schedule, onToggleTennis, onUpdat
         </span>
       </div>
  
-      {sorted.map(({ day, type, sessionIdx: sIdx }) => {
+      {sorted.map(({ day, type, sessionIdx: sIdx, done }) => {
         const st = styles[type];
         const sessionInfo = type === "run" && sIdx !== null ? week.sessions[sIdx] : null;
         const label = sessionInfo ? sessionInfo.label : type === "tennis" ? "Tennis" : "Riposo";
         const detail = sessionInfo ? sessionInfo.detail : type === "tennis" ? "Allenamento normale" : "Recupero o stretching";
         const canTap = type === "run" || (type === "rest" && nextFree !== null);
-        const hint = type === "run" ? "tocca per liberare" : canTap ? "tocca per aggiungere" : "";
+        const hint = "";
+        const rowBg = done ? "rgba(122,182,72,.07)" : "transparent";
  
         return (
           <div key={day} onClick={() => handleTap(day)}
-            onTouchStart={e => { if (canTap) e.currentTarget.style.background = "#fff8f5"; }}
-            onTouchEnd={e => { e.currentTarget.style.background = "transparent"; }}
-            onMouseEnter={e => { if (canTap) e.currentTarget.style.background = "#fff8f5"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-            style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #f5f0e8", gap: 12, cursor: canTap ? "pointer" : "default" }}
+            onTouchStart={e => { if (canTap) e.currentTarget.style.background = done ? "rgba(122,182,72,.12)" : "#fff8f5"; }}
+            onTouchEnd={e => { e.currentTarget.style.background = rowBg; }}
+            onMouseEnter={e => { if (canTap) e.currentTarget.style.background = done ? "rgba(122,182,72,.12)" : "#fff8f5"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = rowBg; }}
+            style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #f5f0e8", gap: 12, cursor: canTap ? "pointer" : "default", background: rowBg, transition: "background .15s" }}
           >
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: st.dot, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>{st.emoji}</div>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: st.dot, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0, opacity: done ? .55 : 1 }}>{st.emoji}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: ".72rem", fontWeight: 700, color: "#6b5347", textTransform: "uppercase", letterSpacing: ".06em" }}>{DAY_NAMES[day]}</div>
-              <div style={{ fontSize: ".88rem", fontWeight: 600, color: "#2a1f1a", marginTop: 1 }}>{label}</div>
-              <div style={{ fontSize: ".75rem", color: "#6b5347", marginTop: 2 }}>{detail}</div>
+              <div style={{ fontSize: ".88rem", fontWeight: 600, color: done ? "#9b7b6a" : "#2a1f1a", marginTop: 1, textDecoration: done ? "line-through" : "none" }}>{label}</div>
+              <div style={{ fontSize: ".75rem", color: "#6b5347", marginTop: 2, opacity: done ? .65 : 1 }}>{detail}</div>
             </div>
+            {type === "run" && (
+              <button
+                onClick={e => { e.stopPropagation(); onStartTimer(weekIdx, day, { label, detail }); }}
+                title="Avvia cronometro"
+                style={{
+                  width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+                  border: "2px solid #c4714a", background: "transparent",
+                  color: "#c4714a", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: ".85rem", transition: "all .15s", paddingLeft: "10px",paddingBottom: "3.5px",
+                }}
+              >
+                ▶
+              </button>
+            )}
+            {type === "run" && (
+              <button
+                onClick={e => { e.stopPropagation(); onToggleDone(weekIdx, day); }}
+                title={done ? "Segna come da fare" : "Segna come fatto"}
+                style={{
+                  width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+                  border: `2px solid ${done ? "#7ab648" : "#d0c4b8"}`,
+                  background: done ? "#7ab648" : "transparent",
+                  color: done ? "#fff" : "#b0a090",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "1rem", fontWeight: 700, lineHeight: 1, transition: "all .15s",
+                }}
+              >
+                ✓
+              </button>
+            )}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-              <span style={{ fontSize: ".67rem", fontWeight: 700, padding: "3px 9px", borderRadius: 7, background: st.tagBg, color: st.tagColor, textTransform: "uppercase", letterSpacing: ".04em" }}>{st.tagLabel}</span>
+              <span style={{ fontSize: ".67rem", fontWeight: 700, padding: "3px 9px", borderRadius: 7, background: st.tagBg, color: st.tagColor, textTransform: "uppercase", letterSpacing: ".04em", opacity: done ? .6 : 1 }}>{st.tagLabel}</span>
               {hint && <span style={{ fontSize: ".6rem", color: "#b0a090" }}>{hint}</span>}
             </div>
           </div>
@@ -267,12 +447,11 @@ function WeekCard({ weekIdx, week, tennisDays, schedule, onToggleTennis, onUpdat
 }
  
 // ── Plan ──────────────────────────────────────────────────────
-function PlanScreen({ defaultTennis, weekTennis, weekSchedules, onToggleTennis, onUpdateSchedule, onReset }) {
+function PlanScreen({ defaultTennis, weekTennis, weekSchedules, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onReset }) {
   return (
     <div style={{ minHeight: "100vh", background: "#f5f0e8", fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ background: "#2a1f1a", color: "#f5f0e8", padding: "22px 20px 18px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.4rem", fontWeight: 900 }}>Il tuo piano 🎾👟</h2>
-        <p style={{ fontSize: ".8rem", opacity: .65, marginTop: 5 }}>Salvato automaticamente 💾</p>
       </div>
  
       <div style={{ display: "flex", gap: 14, justifyContent: "center", padding: "14px 20px", flexWrap: "wrap" }}>
@@ -293,6 +472,8 @@ function PlanScreen({ defaultTennis, weekTennis, weekSchedules, onToggleTennis, 
             schedule={weekSchedules[wi]}
             onToggleTennis={onToggleTennis}
             onUpdateSchedule={onUpdateSchedule}
+            onToggleDone={onToggleDone}
+            onStartTimer={onStartTimer}
           />
         ))}
  
@@ -317,6 +498,10 @@ function PlanScreen({ defaultTennis, weekTennis, weekSchedules, onToggleTennis, 
  
 // ── App ───────────────────────────────────────────────────────
 export default function App() {
+  const [activeTimer, setActiveTimer] = useState(null);
+  const audioCtxRef = useRef(null);
+  const keepAliveRef = useRef(null);
+
   const [state, setState] = useState(() => {
     // Try to load from localStorage on first render
     const saved = loadFromStorage();
@@ -364,6 +549,45 @@ export default function App() {
     });
   };
  
+  const handleToggleDone = (wi, day) => {
+    setState(prev => {
+      const weekSchedules = [...prev.weekSchedules];
+      weekSchedules[wi] = weekSchedules[wi].map(s =>
+        s.day === day ? { ...s, done: !s.done } : s
+      );
+      return { ...prev, weekSchedules };
+    });
+  };
+
+  const stopAudio = () => {
+    if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+    if (keepAliveRef.current) { clearInterval(keepAliveRef.current); keepAliveRef.current = null; }
+  };
+
+  const handleStartTimer = (wi, day, sessionInfo) => {
+    stopAudio();
+    const session = parseSession(sessionInfo.detail);
+    try {
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = actx;
+      actx.resume().then(() => {
+        scheduleAllBeeps(actx, session);
+        keepAliveRef.current = startKeepAlive(actx);
+      });
+    } catch (_) {}
+    setActiveTimer({ wi, day, label: sessionInfo.label, session });
+  };
+
+  const handleStopTimer = () => {
+    stopAudio();
+    setActiveTimer(null);
+  };
+
+  const handleTimerMarkDone = () => {
+    if (activeTimer) handleToggleDone(activeTimer.wi, activeTimer.day);
+    setTimeout(() => { stopAudio(); setActiveTimer(null); }, 3000);
+  };
+
   const handleReset = () => {
     localStorage.removeItem(STORAGE_KEY);
     setState({ screen: "setup", defaultTennis: new Set(), weekTennis: [], weekSchedules: [] });
@@ -371,13 +595,25 @@ export default function App() {
  
   if (state.screen === "setup") return <SetupScreen onGenerate={handleGenerate} />;
   return (
-    <PlanScreen
-      defaultTennis={state.defaultTennis}
-      weekTennis={state.weekTennis}
-      weekSchedules={state.weekSchedules}
-      onToggleTennis={handleToggleTennis}
-      onUpdateSchedule={handleUpdateSchedule}
-      onReset={handleReset}
-    />
+    <>
+      <PlanScreen
+        defaultTennis={state.defaultTennis}
+        weekTennis={state.weekTennis}
+        weekSchedules={state.weekSchedules}
+        onToggleTennis={handleToggleTennis}
+        onUpdateSchedule={handleUpdateSchedule}
+        onToggleDone={handleToggleDone}
+        onStartTimer={handleStartTimer}
+        onReset={handleReset}
+      />
+      {activeTimer && (
+        <TimerOverlay
+          label={activeTimer.label}
+          session={activeTimer.session}
+          onStop={handleStopTimer}
+          onMarkDone={handleTimerMarkDone}
+        />
+      )}
+    </>
   );
 }
