@@ -11,3 +11,37 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+:root {
+  --bg-page:          #f5f0e8;
+  --bg-card:          #ffffff;
+  --bg-card-header:   #e8ddd0;
+  --bg-card-current:  #fdf5f0;
+  --bg-subtle:        #fffcf8;
+  --bg-input:         #faf8f5;
+  --bg-header:        #2a1f1a;
+  --bg-hover-run:     #fff8f5;
+  --clr-border:       #e8ddd0;
+  --clr-border-light: #f5f0e8;
+  --clr-text-dark:    #2a1f1a;
+  --clr-text-mid:     #6b5347;
+  --clr-text-light:   #9b7b6a;
+  --clr-text-header:  #f5f0e8;
+}
+
+[data-theme="dark"] {
+  --bg-page:          #1a1210;
+  --bg-card:          #251916;
+  --bg-card-header:   #2d1f18;
+  --bg-card-current:  #3a2218;
+  --bg-subtle:        #201410;
+  --bg-input:         #2d1f18;
+  --bg-header:        #100b08;
+  --bg-hover-run:     rgba(196, 113, 74, .13);
+  --clr-border:       #3d2d25;
+  --clr-border-light: #2d1f18;
+  --clr-text-dark:    #f0e6dc;
+  --clr-text-mid:     #b89080;
+  --clr-text-light:   #9b7b6a;
+  --clr-text-header:  #f5f0e8;
+}

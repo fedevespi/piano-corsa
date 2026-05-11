@@ -14,9 +14,21 @@ export default function App() {
     return { screen: "setup", defaultTennis: new Set(), weekTennis: [], weekSchedules: [], weekPlans: WEEK_PLANS };
   });
 
+  const [darkMode, setDarkMode] = useState(() => {
+    const stored = localStorage.getItem("piano-corsa-theme");
+    const isDark = stored !== null ? stored === "dark" : (window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+    return isDark;
+  });
+
   const [activeTimer, setActiveTimer] = useState(null);
   const audioCtxRef = useRef(null);
   const keepAliveRef = useRef(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
+    localStorage.setItem("piano-corsa-theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
   useEffect(() => {
     if (state.screen === "plan") {
@@ -130,7 +142,9 @@ export default function App() {
     setState({ screen: "setup", defaultTennis: new Set(), weekTennis: [], weekSchedules: [] });
   };
 
-  if (state.screen === "setup") return <SetupScreen onGenerate={handleGenerate} />;
+  const toggleDark = () => setDarkMode(d => !d);
+
+  if (state.screen === "setup") return <SetupScreen onGenerate={handleGenerate} darkMode={darkMode} onToggleDark={toggleDark} />;
   return (
     <>
       <PlanScreen
@@ -145,6 +159,8 @@ export default function App() {
         onRepeatWeek={handleRepeatWeek}
         onEditSession={handleEditSession}
         onReset={handleReset}
+        darkMode={darkMode}
+        onToggleDark={toggleDark}
       />
       {activeTimer && (
         <TimerOverlay

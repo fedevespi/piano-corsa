@@ -26,7 +26,7 @@ function formatMondayOption(date, currentMonday) {
   return `${base} — ${Math.abs(diff)} settimane fa`;
 }
 
-export default function SetupScreen({ onGenerate }) {
+export default function SetupScreen({ onGenerate, darkMode, onToggleDark }) {
   const [selected, setSelected] = useState(new Set());
   const currentMonday = getMondayOfCurrentWeek();
   const mondayOptions = getMondayOptions();
@@ -37,10 +37,13 @@ export default function SetupScreen({ onGenerate }) {
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f0e8", fontFamily: "'DM Sans', sans-serif" }}>
-      <div style={{ background: "#2a1f1a", color: "#f5f0e8", padding: "44px 24px 36px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-page)", fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ background: "var(--bg-header)", color: "var(--clr-text-header)", padding: "44px 24px 36px", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -50, right: -50, width: 180, height: 180, borderRadius: "50%", background: "#c4714a", opacity: .15 }} />
         <div style={{ position: "absolute", bottom: -40, left: -40, width: 140, height: 140, borderRadius: "50%", background: "#7ab648", opacity: .1 }} />
+        <button onClick={onToggleDark} title={darkMode ? "Modalità chiara" : "Modalità scura"} style={{ position: "absolute", top: 14, right: 16, background: "rgba(255,255,255,.12)", border: "none", borderRadius: 20, padding: "6px 12px", fontSize: "1rem", cursor: "pointer", zIndex: 1 }}>
+          {darkMode ? "☀️" : "🌙"}
+        </button>
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "2rem", fontWeight: 900, lineHeight: 1.1, position: "relative" }}>
           Il tuo piano<br /><span style={{ color: "#e8956d" }}>corsa + tennis</span>
         </h1>
@@ -53,36 +56,36 @@ export default function SetupScreen({ onGenerate }) {
       </div>
 
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "28px 20px" }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.2rem", fontWeight: 700, marginBottom: 4 }}>Quando fai tennis?</div>
-        <div style={{ fontSize: ".83rem", color: "#6b5347", marginBottom: 20 }}>Seleziona i giorni tipici — potrai cambiarli settimana per settimana</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.2rem", fontWeight: 700, marginBottom: 4, color: "var(--clr-text-dark)" }}>Quando fai tennis?</div>
+        <div style={{ fontSize: ".83rem", color: "var(--clr-text-mid)", marginBottom: 20 }}>Seleziona i giorni tipici — potrai cambiarli settimana per settimana</div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 22 }}>
           {DAY_NAMES.map((name, i) => {
             const on = selected.has(i);
             return (
               <button key={i} onClick={() => toggle(i)} style={{
-                aspectRatio: "1", borderRadius: 10, border: `2px solid ${on ? "#5a8f30" : "#e8ddd0"}`,
-                background: on ? "#7ab648" : "#fff", cursor: "pointer",
+                aspectRatio: "1", borderRadius: 10, border: `2px solid ${on ? "#5a8f30" : "var(--clr-border)"}`,
+                background: on ? "#7ab648" : "var(--bg-card)", cursor: "pointer",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, padding: 0
               }}>
                 <span style={{ fontSize: "1.1rem" }}>{on ? "🎾" : "☀️"}</span>
-                <span style={{ fontSize: ".57rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: on ? "rgba(255,255,255,.9)" : "#6b5347" }}>{name}</span>
+                <span style={{ fontSize: ".57rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: on ? "rgba(255,255,255,.9)" : "var(--clr-text-mid)" }}>{name}</span>
               </button>
             );
           })}
         </div>
 
         <div style={{ marginBottom: 18 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", fontWeight: 700, marginBottom: 4 }}>Da quando inizia la settimana 1?</div>
-          <div style={{ fontSize: ".83rem", color: "#6b5347", marginBottom: 10 }}>Usato per sapere in quale settimana sei — puoi scegliere anche il passato o il futuro</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", fontWeight: 700, marginBottom: 4, color: "var(--clr-text-dark)" }}>Da quando inizia la settimana 1?</div>
+          <div style={{ fontSize: ".83rem", color: "var(--clr-text-mid)", marginBottom: 10 }}>Usato per sapere in quale settimana sei — puoi scegliere anche il passato o il futuro</div>
           <select
             value={startDate.toISOString()}
             onChange={e => setStartDate(new Date(e.target.value))}
             style={{
-              width: "100%", padding: "13px 14px", border: "2px solid #e8ddd0",
-              borderRadius: 12, background: "#fff", fontFamily: "'DM Sans', sans-serif",
-              fontSize: ".88rem", color: "#2a1f1a", cursor: "pointer",
-              appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b5347' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
+              width: "100%", padding: "13px 14px", border: "2px solid var(--clr-border)",
+              borderRadius: 12, background: "var(--bg-card)", fontFamily: "'DM Sans', sans-serif",
+              fontSize: ".88rem", color: "var(--clr-text-dark)", cursor: "pointer",
+              appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23b89080' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
               backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center",
             }}
           >
@@ -94,18 +97,18 @@ export default function SetupScreen({ onGenerate }) {
           </select>
         </div>
 
-        <div style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", marginBottom: 18, borderLeft: "4px solid #c4714a" }}>
-          <p style={{ fontSize: ".83rem", color: "#6b5347", lineHeight: 1.6 }}>
-            Metodo <strong style={{ color: "#2a1f1a" }}>corsa/camminata</strong> progressivo · 8 settimane.
-            Potrai <strong style={{ color: "#2a1f1a" }}>modificare ogni settimana</strong> — tennis, giorni di corsa, tutto.
-            Il piano viene <strong style={{ color: "#2a1f1a" }}>salvato automaticamente</strong> sul tuo browser. 💾
+        <div style={{ background: "var(--bg-card)", borderRadius: 12, padding: "14px 16px", marginBottom: 18, borderLeft: "4px solid #c4714a" }}>
+          <p style={{ fontSize: ".83rem", color: "var(--clr-text-mid)", lineHeight: 1.6 }}>
+            Metodo <strong style={{ color: "var(--clr-text-dark)" }}>corsa/camminata</strong> progressivo · 8 settimane.
+            Potrai <strong style={{ color: "var(--clr-text-dark)" }}>modificare ogni settimana</strong> — tennis, giorni di corsa, tutto.
+            Il piano viene <strong style={{ color: "var(--clr-text-dark)" }}>salvato automaticamente</strong> sul tuo browser. 💾
           </p>
         </div>
 
         <button disabled={selected.size === 0} onClick={() => onGenerate(selected, startDate)} style={{
           width: "100%", padding: "17px", border: "none", borderRadius: 14,
-          background: selected.size === 0 ? "#e8ddd0" : "#c4714a",
-          color: selected.size === 0 ? "#6b5347" : "#fff",
+          background: selected.size === 0 ? "var(--bg-card-header)" : "#c4714a",
+          color: selected.size === 0 ? "var(--clr-text-mid)" : "#fff",
           fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", fontWeight: 700,
           cursor: selected.size === 0 ? "not-allowed" : "pointer"
         }}>

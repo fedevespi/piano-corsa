@@ -30,14 +30,14 @@ export default function EditSessionModal({ session, onSave, onCancel }) {
   };
 
   const inputStyle = {
-    width: "100%", padding: "10px 12px", border: "2px solid #e8ddd0",
+    width: "100%", padding: "10px 12px", border: "2px solid var(--clr-border)",
     borderRadius: 10, fontFamily: "'DM Sans', sans-serif",
-    fontSize: ".9rem", color: "#2a1f1a", background: "#faf8f5",
+    fontSize: ".9rem", color: "var(--clr-text-dark)", background: "var(--bg-input)",
     boxSizing: "border-box", outline: "none",
   };
 
   const labelStyle = {
-    fontSize: ".72rem", fontWeight: 700, color: "#6b5347",
+    fontSize: ".72rem", fontWeight: 700, color: "var(--clr-text-mid)",
     textTransform: "uppercase", letterSpacing: ".05em",
     marginBottom: 5, display: "block",
   };
@@ -52,10 +52,10 @@ export default function EditSessionModal({ session, onSave, onCancel }) {
       onClick={onCancel}
     >
       <div
-        style={{ background: "#fff", borderRadius: 18, padding: "24px 20px", width: "100%", maxWidth: 340, boxShadow: "0 8px 32px rgba(42,31,26,.18)" }}
+        style={{ background: "var(--bg-card)", borderRadius: 18, padding: "24px 20px", width: "100%", maxWidth: 340, boxShadow: "0 8px 32px rgba(42,31,26,.18)" }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", fontWeight: 700, color: "#2a1f1a", marginBottom: 18 }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", fontWeight: 700, color: "var(--clr-text-dark)", marginBottom: 18 }}>
           Modifica sessione
         </div>
 
@@ -65,9 +65,9 @@ export default function EditSessionModal({ session, onSave, onCancel }) {
             {[["interval", "Corsa/cammino"], ["continuous", "Corsa continua"]].map(([val, lbl]) => (
               <button key={val} onClick={() => setType(val)} style={{
                 flex: 1, padding: "9px 0", borderRadius: 9,
-                border: `2px solid ${type === val ? "#c4714a" : "#e8ddd0"}`,
-                background: type === val ? "rgba(196,113,74,.08)" : "#faf8f5",
-                color: type === val ? "#c4714a" : "#6b5347",
+                border: `2px solid ${type === val ? "#c4714a" : "var(--clr-border)"}`,
+                background: type === val ? "rgba(196,113,74,.08)" : "var(--bg-input)",
+                color: type === val ? "#c4714a" : "var(--clr-text-mid)",
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: ".78rem", fontWeight: 700, cursor: "pointer",
               }}>{lbl}</button>
@@ -99,16 +99,16 @@ export default function EditSessionModal({ session, onSave, onCancel }) {
           </div>
         )}
 
-        <div style={{ background: "#fdf5f0", borderRadius: 9, padding: "9px 12px", marginBottom: 18 }}>
+        <div style={{ background: "var(--bg-card-current)", borderRadius: 9, padding: "9px 12px", marginBottom: 18 }}>
           <span style={{ fontSize: ".72rem", fontWeight: 700, color: "#c4714a" }}>Anteprima: </span>
-          <span style={{ fontSize: ".8rem", color: "#6b5347" }}>{preview}</span>
+          <span style={{ fontSize: ".8rem", color: "var(--clr-text-mid)" }}>{preview}</span>
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onCancel} style={{
             flex: 1, padding: "11px 0", borderRadius: 10,
-            border: "2px solid #e8ddd0", background: "transparent",
-            color: "#6b5347", fontFamily: "'DM Sans', sans-serif",
+            border: "2px solid var(--clr-border)", background: "transparent",
+            color: "var(--clr-text-mid)", fontFamily: "'DM Sans', sans-serif",
             fontSize: ".88rem", fontWeight: 600, cursor: "pointer",
           }}>Annulla</button>
           <button onClick={handleSave} style={{
