@@ -9,5 +9,4 @@ Medie
 - Dark mode — l'app ha una palette calda che si presta bene, con un toggle manuale o seguendo prefers-color-scheme
 
 Difficili
-- Piano personalizzabile — permettere all'utente di modificare i dettagli delle sessioni (es. cambiare "1 min corsa" in "90 sec") prima di generare il piano
 - PWA installabile — aggiungere manifest.json e service worker così l'app si installa come app nativa su Android (icona nella home, schermo intero, funziona offline)

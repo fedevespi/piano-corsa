@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { DAY_NAMES } from "../data/weekPlans";
 import { getAvailableRunDays } from "../utils/schedule";
+import EditSessionModal from "./EditSessionModal";
 
 const DAY_STYLES = {
   tennis: { dot: "rgba(122,182,72,.15)", tagBg: "#7ab648", tagColor: "#fff", emoji: "🎾", tagLabel: "tennis" },
@@ -7,7 +9,8 @@ const DAY_STYLES = {
   rest:   { dot: "rgba(176,160,144,.15)", tagBg: "#e8ddd0", tagColor: "#6b5347", emoji: "😴", tagLabel: "riposo" },
 };
 
-export default function WeekCard({ weekIdx, week, totalWeeks, tennisDays, schedule, isCurrent, isOpen, onToggle, scrollRef, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onRepeatWeek }) {
+export default function WeekCard({ weekIdx, week, totalWeeks, tennisDays, schedule, isCurrent, isOpen, onToggle, scrollRef, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onRepeatWeek, onEditSession }) {
+  const [editTarget, setEditTarget] = useState(null);
   const tArr = Array.from(tennisDays).sort((a, b) => a - b);
   const assignedIdxs = schedule.filter(s => s.type === "run").map(s => s.sessionIdx);
   const runCount = assignedIdxs.length;
@@ -108,7 +111,16 @@ export default function WeekCard({ weekIdx, week, totalWeeks, tennisDays, schedu
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: ".72rem", fontWeight: 700, color: "#6b5347", textTransform: "uppercase", letterSpacing: ".06em" }}>{DAY_NAMES[day]}</div>
                   <div style={{ fontSize: ".88rem", fontWeight: 600, color: done ? "#9b7b6a" : "#2a1f1a", marginTop: 1, textDecoration: done ? "line-through" : "none" }}>{label}</div>
-                  <div style={{ fontSize: ".75rem", color: "#6b5347", marginTop: 2, opacity: done ? .65 : 1 }}>{detail}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                    <span style={{ fontSize: ".75rem", color: "#6b5347", opacity: done ? .65 : 1 }}>{detail}</span>
+                    {type === "run" && (
+                      <button
+                        onClick={e => { e.stopPropagation(); setEditTarget({ sessionIdx: sIdx }); }}
+                        title="Modifica sessione"
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: ".75rem", opacity: .45, lineHeight: 1, display: "flex", alignItems: "center" }}
+                      >✏️</button>
+                    )}
+                  </div>
                 </div>
                 {type === "run" && (
                   <button
@@ -147,6 +159,14 @@ export default function WeekCard({ weekIdx, week, totalWeeks, tennisDays, schedu
               </div>
             );
           })}
+          {editTarget && (
+            <EditSessionModal
+              session={week.sessions[editTarget.sessionIdx]}
+              onSave={updated => { onEditSession(weekIdx, editTarget.sessionIdx, updated); setEditTarget(null); }}
+              onCancel={() => setEditTarget(null)}
+            />
+          )}
+
           <div style={{ padding: "12px 16px 14px" }}>
             <button
               onClick={() => onRepeatWeek(weekIdx)}

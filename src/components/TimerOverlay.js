@@ -7,11 +7,13 @@ export default function TimerOverlay({ label, session, onStop, onMarkDone }) {
   const doneFired = useRef(false);
   const onMarkDoneRef = useRef(onMarkDone);
   onMarkDoneRef.current = onMarkDone;
+  const prevPhaseRef = useRef(null);
 
   useEffect(() => {
     const id = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startMs.current) / 1000));
     }, 500);
+    navigator.vibrate?.([200]);
     return () => clearInterval(id);
   }, []);
 
@@ -21,6 +23,17 @@ export default function TimerOverlay({ label, session, onStop, onMarkDone }) {
       onMarkDoneRef.current();
     }
   }, [elapsed, session.totalSec]);
+
+  useEffect(() => {
+    const { phase } = derivePhase(session, elapsed);
+    const prev = prevPhaseRef.current;
+    if (prev !== null && phase !== prev) {
+      if (phase === "done")       navigator.vibrate?.([200, 100, 200, 100, 400]);
+      else if (phase === "run")   navigator.vibrate?.([300]);
+      else if (phase === "walk")  navigator.vibrate?.([100, 50, 100]);
+    }
+    prevPhaseRef.current = phase;
+  }, [elapsed, session]);
 
   const fmt = s => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
   const { phase, remaining, round, rounds } = derivePhase(session, elapsed);

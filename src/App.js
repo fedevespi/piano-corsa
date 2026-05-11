@@ -53,6 +53,16 @@ export default function App() {
     });
   };
 
+  const handleEditSession = (wi, sessionIdx, updatedSession) => {
+    setState(prev => {
+      const weekPlans = [...prev.weekPlans];
+      const sessions = [...weekPlans[wi].sessions];
+      sessions[sessionIdx] = updatedSession;
+      weekPlans[wi] = { ...weekPlans[wi], sessions };
+      return { ...prev, weekPlans };
+    });
+  };
+
   const handleRepeatWeek = (wi) => {
     setState(prev => {
       const weekPlans = [...prev.weekPlans];
@@ -133,6 +143,7 @@ export default function App() {
         onToggleDone={handleToggleDone}
         onStartTimer={handleStartTimer}
         onRepeatWeek={handleRepeatWeek}
+        onEditSession={handleEditSession}
         onReset={handleReset}
       />
       {activeTimer && (

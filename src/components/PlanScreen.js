@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { getCurrentWeekIdx } from "../utils/schedule";
 import WeekCard from "./WeekCard";
 
-export default function PlanScreen({ weekPlans, weekTennis, weekSchedules, planStartDate, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onRepeatWeek, onReset }) {
+export default function PlanScreen({ weekPlans, weekTennis, weekSchedules, planStartDate, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onRepeatWeek, onEditSession, onReset }) {
   const currentWeekIdx = getCurrentWeekIdx(planStartDate);
   const [openIdx, setOpenIdx] = useState(currentWeekIdx);
   const currentRef = useRef(null);
@@ -46,6 +46,7 @@ export default function PlanScreen({ weekPlans, weekTennis, weekSchedules, planS
             onToggleDone={onToggleDone}
             onStartTimer={onStartTimer}
             onRepeatWeek={onRepeatWeek}
+            onEditSession={onEditSession}
           />
         ))}
 

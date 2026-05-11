@@ -1,13 +1,13 @@
 export function parseSession(detail) {
-  const m = detail.match(/(\d+)\s*min\s*corsa\s*\+\s*(\d+)\s*min\s*cammino\s*[×x]\s*(\d+)/i);
+  const m = detail.match(/(\d+(?:[.,]\d+)?)\s*min\s*corsa\s*\+\s*(\d+(?:[.,]\d+)?)\s*min\s*cammino\s*[×x]\s*(\d+)/i);
   if (m) {
-    const runSec = parseInt(m[1]) * 60;
-    const walkSec = parseInt(m[2]) * 60;
+    const runSec = parseFloat(m[1].replace(",", ".")) * 60;
+    const walkSec = parseFloat(m[2].replace(",", ".")) * 60;
     const rounds = parseInt(m[3]);
     return { type: "interval", runSec, walkSec, rounds, totalSec: (runSec + walkSec) * rounds };
   }
-  const cm = detail.match(/^(\d+)\s*min/);
-  if (cm) return { type: "continuous", totalSec: parseInt(cm[1]) * 60 };
+  const cm = detail.match(/^(\d+(?:[.,]\d+)?)\s*min/);
+  if (cm) return { type: "continuous", totalSec: parseFloat(cm[1].replace(",", ".")) * 60 };
   return { type: "open" };
 }
 
