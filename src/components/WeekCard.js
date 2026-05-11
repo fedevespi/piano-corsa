@@ -7,7 +7,7 @@ const DAY_STYLES = {
   rest:   { dot: "rgba(176,160,144,.15)", tagBg: "#e8ddd0", tagColor: "#6b5347", emoji: "😴", tagLabel: "riposo" },
 };
 
-export default function WeekCard({ weekIdx, week, tennisDays, schedule, isCurrent, isOpen, onToggle, scrollRef, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer }) {
+export default function WeekCard({ weekIdx, week, totalWeeks, tennisDays, schedule, isCurrent, isOpen, onToggle, scrollRef, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onRepeatWeek }) {
   const tArr = Array.from(tennisDays).sort((a, b) => a - b);
   const assignedIdxs = schedule.filter(s => s.type === "run").map(s => s.sessionIdx);
   const runCount = assignedIdxs.length;
@@ -15,7 +15,7 @@ export default function WeekCard({ weekIdx, week, tennisDays, schedule, isCurren
   const nextFree = runCount < week.sessions.length
     ? [...Array(week.sessions.length).keys()].find(i => !assignedIdxs.includes(i))
     : null;
-  const pct = Math.round(((weekIdx + 1) / 8) * 100);
+  const pct = Math.round(((weekIdx + 1) / (totalWeeks ?? 8)) * 100);
   const sorted = [...schedule].sort((a, b) => a.day - b.day);
 
   const handleTap = (day) => {
@@ -147,6 +147,22 @@ export default function WeekCard({ weekIdx, week, tennisDays, schedule, isCurren
               </div>
             );
           })}
+          <div style={{ padding: "12px 16px 14px" }}>
+            <button
+              onClick={() => onRepeatWeek(weekIdx)}
+              style={{
+                width: "100%", padding: "10px 0", borderRadius: 10,
+                border: "2px dashed #d0c4b8", background: "transparent",
+                color: "#6b5347", fontFamily: "'DM Sans', sans-serif",
+                fontSize: ".82rem", fontWeight: 600, cursor: "pointer",
+                transition: "all .15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#c4714a"; e.currentTarget.style.color = "#c4714a"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#d0c4b8"; e.currentTarget.style.color = "#6b5347"; }}
+            >
+              ↩ Ripeti questa settimana
+            </button>
+          </div>
         </>
       )}
     </div>

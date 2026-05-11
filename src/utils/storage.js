@@ -6,6 +6,7 @@ export function saveToStorage(data) {
       defaultTennis: Array.from(data.defaultTennis),
       weekTennis: data.weekTennis.map(s => Array.from(s)),
       weekSchedules: data.weekSchedules,
+      weekPlans: data.weekPlans,
       planStartDate: data.planStartDate,
     }));
   } catch (_) {}
@@ -20,6 +21,7 @@ export function loadFromStorage() {
       defaultTennis: new Set(parsed.defaultTennis),
       weekTennis: parsed.weekTennis.map(a => new Set(a)),
       weekSchedules: parsed.weekSchedules,
+      weekPlans: parsed.weekPlans ?? null,
       planStartDate: parsed.planStartDate ?? null,
     };
   } catch (_) { return null; }

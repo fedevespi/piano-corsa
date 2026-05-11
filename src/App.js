@@ -10,8 +10,8 @@ import TimerOverlay from "./components/TimerOverlay";
 export default function App() {
   const [state, setState] = useState(() => {
     const saved = loadFromStorage();
-    if (saved) return { screen: "plan", ...saved };
-    return { screen: "setup", defaultTennis: new Set(), weekTennis: [], weekSchedules: [] };
+    if (saved) return { screen: "plan", ...saved, weekPlans: saved.weekPlans ?? WEEK_PLANS };
+    return { screen: "setup", defaultTennis: new Set(), weekTennis: [], weekSchedules: [], weekPlans: WEEK_PLANS };
   });
 
   const [activeTimer, setActiveTimer] = useState(null);
@@ -24,6 +24,7 @@ export default function App() {
         defaultTennis: state.defaultTennis,
         weekTennis: state.weekTennis,
         weekSchedules: state.weekSchedules,
+        weekPlans: state.weekPlans,
         planStartDate: state.planStartDate,
       });
     }
@@ -34,6 +35,7 @@ export default function App() {
     setState({
       screen: "plan",
       defaultTennis: selected,
+      weekPlans: WEEK_PLANS,
       weekTennis: WEEK_PLANS.map(() => new Set(selected)),
       weekSchedules: WEEK_PLANS.map(w => buildInitialSchedule(tArr, w.sessions)),
       planStartDate: startDate.toISOString(),
@@ -46,8 +48,23 @@ export default function App() {
       weekTennis[wi].has(di) ? weekTennis[wi].delete(di) : weekTennis[wi].add(di);
       const tArr = Array.from(weekTennis[wi]).sort((a, b) => a - b);
       const weekSchedules = [...prev.weekSchedules];
-      weekSchedules[wi] = buildInitialSchedule(tArr, WEEK_PLANS[wi].sessions);
+      weekSchedules[wi] = buildInitialSchedule(tArr, prev.weekPlans[wi].sessions);
       return { ...prev, weekTennis, weekSchedules };
+    });
+  };
+
+  const handleRepeatWeek = (wi) => {
+    setState(prev => {
+      const weekPlans = [...prev.weekPlans];
+      weekPlans.splice(wi + 1, 0, { ...prev.weekPlans[wi] });
+
+      const weekTennis = prev.weekTennis.map(s => new Set(s));
+      weekTennis.splice(wi + 1, 0, new Set(prev.weekTennis[wi]));
+
+      const weekSchedules = [...prev.weekSchedules];
+      weekSchedules.splice(wi + 1, 0, prev.weekSchedules[wi].map(s => ({ ...s, done: false })));
+
+      return { ...prev, weekPlans, weekTennis, weekSchedules };
     });
   };
 
@@ -107,6 +124,7 @@ export default function App() {
   return (
     <>
       <PlanScreen
+        weekPlans={state.weekPlans}
         weekTennis={state.weekTennis}
         weekSchedules={state.weekSchedules}
         planStartDate={state.planStartDate}
@@ -114,6 +132,7 @@ export default function App() {
         onUpdateSchedule={handleUpdateSchedule}
         onToggleDone={handleToggleDone}
         onStartTimer={handleStartTimer}
+        onRepeatWeek={handleRepeatWeek}
         onReset={handleReset}
       />
       {activeTimer && (

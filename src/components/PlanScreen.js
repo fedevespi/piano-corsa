@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { WEEK_PLANS } from "../data/weekPlans";
 import { getCurrentWeekIdx } from "../utils/schedule";
 import WeekCard from "./WeekCard";
 
-export default function PlanScreen({ weekTennis, weekSchedules, planStartDate, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onReset }) {
+export default function PlanScreen({ weekPlans, weekTennis, weekSchedules, planStartDate, onToggleTennis, onUpdateSchedule, onToggleDone, onStartTimer, onRepeatWeek, onReset }) {
   const currentWeekIdx = getCurrentWeekIdx(planStartDate);
   const [openIdx, setOpenIdx] = useState(currentWeekIdx);
   const currentRef = useRef(null);
@@ -30,11 +29,12 @@ export default function PlanScreen({ weekTennis, weekSchedules, planStartDate, o
       </div>
 
       <div style={{ maxWidth: 500, margin: "0 auto" }}>
-        {WEEK_PLANS.map((week, wi) => (
+        {weekPlans.map((week, wi) => (
           <WeekCard
             key={wi}
             weekIdx={wi}
             week={week}
+            totalWeeks={weekPlans.length}
             tennisDays={weekTennis[wi]}
             schedule={weekSchedules[wi]}
             isCurrent={wi === currentWeekIdx}
@@ -45,6 +45,7 @@ export default function PlanScreen({ weekTennis, weekSchedules, planStartDate, o
             onUpdateSchedule={onUpdateSchedule}
             onToggleDone={onToggleDone}
             onStartTimer={onStartTimer}
+            onRepeatWeek={onRepeatWeek}
           />
         ))}
 
